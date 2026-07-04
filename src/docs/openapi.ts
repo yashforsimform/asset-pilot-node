@@ -352,6 +352,23 @@ export const openApiDocument = {
                 },
             },
         },
+        '/borrower/device-details/{itemId}': {
+            get: {
+                summary: 'Borrower Device Details',
+                tags: ['Devices'],
+                parameters: operationParameters(
+                    pathUuidParam('itemId', apiExamples.ids.itemId),
+                ),
+                responses: {
+                    '200': jsonResponse(
+                        'Device detail',
+                        apiExamples.responses.deviceDetail,
+                    ),
+                    '400': { $ref: '#/components/responses/BadRequest' },
+                    '404': { $ref: '#/components/responses/NotFound' },
+                },
+            },
+        },
         '/manager/approvals': {
             get: {
                 summary: 'Screen 4 - List Manager Pending Approvals',

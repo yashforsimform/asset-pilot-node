@@ -56,8 +56,8 @@ export const supportRequestsQuerySchema = z.object({
 });
 
 export const createHandoverRequestSchema = z.object({
-    item_id: z.string().uuid(),
-    requested_duration_hours: z.coerce.number().int().positive().optional(),
+    itemId: z.string().uuid(),
+    requestedDurationHours: z.coerce.number().int().positive().optional(),
 });
 
 export const handoverRequestsQuerySchema = z.object({

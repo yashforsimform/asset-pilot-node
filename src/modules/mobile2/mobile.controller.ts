@@ -29,6 +29,7 @@ import {
     createSupportRequest,
     getApprovalsForManager,
     getDeviceDetail,
+    getDeviceDetailsService,
     getExtensionRequestDetail,
     getItemCategoryService,
     getMyDevices,
@@ -284,6 +285,14 @@ export async function submitHandoverRequest(
             201,
         ),
     );
+}
+
+export async function deviceDetailsFromId(
+    req: Request<ItemIdParams>,
+    res: Response,
+) {
+    const details = await getDeviceDetailsService(req.params.itemId);
+    res.json(buildSuccessResponse(details, 'Device details fetched'));
 }
 
 export async function listMyHandoverRequests(
