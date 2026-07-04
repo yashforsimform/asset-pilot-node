@@ -9,6 +9,7 @@ variables:
   azureServiceConnection: 'your-service-connection-name'
   
   # Application Configuration:
+  resourceGroup: 'prodessy'
   acrName: 'assetpilotacr2026'
   imageName: 'asset-pilot'
   imageTag: 'latest'
@@ -31,9 +32,9 @@ stages:
 
           echo "Getting ACR credentials..."
           # Note: Ensure the ACR is already created before this runs
-          ACR_LOGIN_SERVER=$(az acr show --name $(acrName) --query loginServer -o tsv)
-          ACR_USERNAME=$(az acr credential show --name $(acrName) --query "username" -o tsv)
-          ACR_PASSWORD=$(az acr credential show --name $(acrName) --query "passwords[0].value" -o tsv)
+          ACR_LOGIN_SERVER=$(az acr show --name $(acrName) --resource-group $(resourceGroup) --query loginServer -o tsv)
+          ACR_USERNAME=$(az acr credential show --name $(acrName) --resource-group $(resourceGroup) --query "username" -o tsv)
+          ACR_PASSWORD=$(az acr credential show --name $(acrName) --resource-group $(resourceGroup) --query "passwords[0].value" -o tsv)
           
           echo "Logging in to Docker Registry..."
           echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME --password-stdin
