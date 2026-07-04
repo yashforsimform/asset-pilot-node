@@ -1,0 +1,6 @@
+.env 
+node_modules
+.github
+AGENTS.md
+.context/ 
+./generated/
