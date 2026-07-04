@@ -380,7 +380,7 @@ Table device_log {
     (item_id, occurred_at) [name: 'idx_device_log_item_time']
     (item_id, occurred_at) [name: 'idx_device_log_milestones', note: 'partial index WHERE is_milestone = true']
     request_id
-    event_type
+    event_type  
   }
 
   Note: 'Append-only audit log. is_milestone drives the device timeline view. Enforce in Postgres: CREATE RULE device_log_no_update AS ON UPDATE TO device_log DO INSTEAD NOTHING; CREATE RULE device_log_no_delete AS ON DELETE TO device_log DO INSTEAD NOTHING;'

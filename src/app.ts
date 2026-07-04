@@ -1,19 +1,30 @@
-import express from 'express';
-import { mobileRouter } from './modules/mobile/mobile.routes';
-import { authenticateMiddleware } from './middlewares/authenticate';
-import { errorHandler } from './middlewares/error-handler';
-import { requestIdMiddleware } from './middlewares/request-id';
-import { sendSuccess } from './common/utils/api-response';
+import express from "express";
+import mobileRouter from "./modules/mobile/mobile.routes";
+import authenticateMiddleware from "./middlewares/auth.middleware";
+import { errorHandlerMiddleware } from "./middlewares/error-handler.middleware";
+import { requestLoggerMiddleware } from "./middlewares/request-logger.middleware";
+import {
+  corsMiddleware,
+  rateLimitMiddleware,
+  securityHeadersMiddleware,
+} from "./middlewares/security.middleware";
 
-export const app = express();
+export function createApp(): express.Express {
+  const app = express();
 
-app.use(express.json());
-app.use(requestIdMiddleware);
+  app.use(securityHeadersMiddleware);
+  app.use(corsMiddleware);
+  app.use(rateLimitMiddleware);
+  app.use(requestLoggerMiddleware);
+  app.use(express.json());
+  app.use(authenticateMiddleware);
 
-app.get('/health', (_req, res) => {
-    sendSuccess(res, 200, { ok: true }, 'Server is healthy');
-});
+  app.use("/api/v1/mobile", mobileRouter);
+  app.use("/", mobileRouter);
 
-app.use('/api/v1', authenticateMiddleware, mobileRouter);
+  app.use(errorHandlerMiddleware);
 
-app.use(errorHandler);
+  return app;
+}
+
+export const app = createApp();
