@@ -304,6 +304,12 @@ export async function findExtensionRequestsForDevice(
     });
 }
 
+export async function getDeviceDetailRepo(deviceId: string) {
+    return await prisma.item.findUnique({
+        where: { id: deviceId },
+    });
+}
+
 export async function findExtensionRequestDetail(
     userId: string,
     id: string,

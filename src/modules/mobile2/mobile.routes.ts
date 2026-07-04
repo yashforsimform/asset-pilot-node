@@ -24,6 +24,7 @@ import {
     listMyRequests,
     getItemCategory,
     login,
+    deviceDetailsFromId,
 } from './mobile.controller';
 import {
     approveRequestSchema,
@@ -119,6 +120,11 @@ router.get(
     '/me/support-requests/:id',
     validateParams(supportRequestIdParamsSchema),
     getMySupportRequestDetail,
+);
+router.get(
+    '/borrower/device-details/:itemId',
+    validateParams(itemIdParamsSchema),
+    deviceDetailsFromId,
 );
 router.post(
     '/me/handover-requests',

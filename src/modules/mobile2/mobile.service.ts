@@ -41,6 +41,7 @@ import {
     findSupportRequestsByRequester,
     findUserByEmail,
     findUserById,
+    getDeviceDetailRepo,
     getItemCategoryRepo,
     getMyDevicesByUserId,
     initiateWfhReturn,
@@ -214,6 +215,13 @@ export async function getMyDevices(userId: string) {
         };
     });
     return data;
+}
+
+export async function getDeviceDetailsService(deviceId: string) {
+    const device = await getDeviceDetailRepo(deviceId);
+    if (!device)
+        throw new AppError(404, 'Device not found', 'Device Not found');
+    return device;
 }
 
 export async function getDeviceDetail(
@@ -447,8 +455,8 @@ export async function createHandoverRequest(
         await getCurrentUser(userId);
         return await createHandoverForItem(
             userId,
-            dto.item_id,
-            dto.requested_duration_hours,
+            dto.itemId,
+            dto.requestedDurationHours,
         );
     } catch (error) {
         mapWorkflowError(error);
