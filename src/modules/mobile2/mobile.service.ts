@@ -34,11 +34,13 @@ import {
     findHandoversByItem,
     findItemLookupById,
     findManagerApprovals,
+    findMyRequestByUserId,
     findRequestById,
     findRequestsByRequester,
     findSupportRequestDetail,
     findSupportRequestsByRequester,
     findUserById,
+    getMyDevicesByUserId,
     initiateWfhReturn,
     rejectHandoverForOwner,
     rejectRequestByManager,
@@ -144,6 +146,18 @@ function mapWorkflowError(error: unknown): never {
     throw mapped[error.message] ?? error;
 }
 
+export async function getMyRequestByUserId(userId: string) {
+    const user = await findUserById(userId);
+    if (!user) {
+        throw new AppError(
+            'Authenticated user not found',
+            401,
+            'authenticated_user_not_found',
+        );
+    }
+    return findMyRequestByUserId(userId);
+}
+
 export async function getCurrentUser(userId: string): Promise<User> {
     const user = await findUserById(userId);
 
@@ -158,11 +172,23 @@ export async function getCurrentUser(userId: string): Promise<User> {
     return user;
 }
 
-export async function getMyDevices(
+export async function getMyRequests(
     userId: string,
 ): Promise<RequestWithCategoryAndItem[]> {
     const user = await getCurrentUser(userId);
     return findRequestsByRequester(user.id);
+}
+
+export async function getMyDevices(userId: string) {
+    const user = await getCurrentUser(userId);
+    if (!user) {
+        throw new AppError(
+            'Authenticated user not found',
+            401,
+            'authenticated_user_not_found',
+        );
+    }
+    return await getMyDevicesByUserId(userId);
 }
 
 export async function getDeviceDetail(

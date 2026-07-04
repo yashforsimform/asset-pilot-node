@@ -84,6 +84,20 @@ export async function findUserById(id: string): Promise<User | null> {
     return user ?? buildFallbackUser(id);
 }
 
+export async function findMyRequestByUserId(userId: string) {
+    return prisma.request.findMany({
+        where: { requesterId: userId },
+    });
+}
+
+export async function getMyDevicesByUserId(userId: string) {
+    return prisma.item.findMany({
+        where: {
+            currentOwnerId: userId,
+        },
+    });
+}
+
 export async function findRequestsByRequester(
     requesterId: string,
 ): Promise<RequestWithCategoryAndItem[]> {

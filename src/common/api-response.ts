@@ -6,7 +6,7 @@ export interface ApiMeta {
 }
 
 export interface ApiSuccessResponse<T> {
-    status_code: number;
+    statusCode: number;
     data: T;
     message: string;
     meta: ApiMeta;
@@ -14,7 +14,7 @@ export interface ApiSuccessResponse<T> {
 }
 
 export interface ApiErrorResponse {
-    status_code: number;
+    statusCode: number;
     message: string;
     error: {
         code: string;
@@ -38,7 +38,7 @@ export function buildSuccessResponse<T>(
     statusCode = 200,
 ): ApiSuccessResponse<T> {
     return {
-        status_code: statusCode,
+        statusCode: statusCode,
         data,
         message,
         meta: buildMeta(),
@@ -53,7 +53,7 @@ export function buildErrorResponse(
     details: unknown[] = [],
 ): ApiErrorResponse {
     return {
-        status_code: statusCode,
+        statusCode: statusCode,
         message,
         error: {
             code,

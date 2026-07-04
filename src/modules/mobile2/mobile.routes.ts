@@ -20,6 +20,8 @@ import {
     submitHandoverRequest,
     submitRequest,
     submitSupportRequest,
+    getMyRequest,
+    listMyRequests,
 } from './mobile.controller';
 import {
     approveRequestSchema,
@@ -46,13 +48,21 @@ import {
 const router = Router();
 
 router.get('/health', getHealth);
+router.get('/me/requests', listMyRequests);
 router.get('/me/devices', listMyDevices);
+// router.get('/me/assigned-devices', listMyDevices)
 router.get(
     '/me/devices/:itemId',
     validateParams(itemIdParamsSchema),
     getMyDeviceDetail,
 );
 router.post('/me/requests', validateBody(createRequestSchema), submitRequest);
+router.get(
+    '/me/request',
+    //   validateBody({ query: listMyRequestsQuerySchema }),
+    getMyRequest,
+);
+
 router.get('/manager/approvals', listManagerApprovals);
 router.patch(
     '/manager/requests/:requestId/approve',

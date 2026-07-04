@@ -28,6 +28,8 @@ import {
     getDeviceDetail,
     getExtensionRequestDetail,
     getMyDevices,
+    getMyRequestByUserId,
+    getMyRequests,
     getSupportRequestDetail,
     initiateReturn,
     listExtensionRequests,
@@ -59,8 +61,23 @@ export async function listMyDevices(
     req: Request,
     res: Response,
 ): Promise<void> {
-    const requests = await getMyDevices(getAuthenticatedUserId(req));
+    const devices = await getMyDevices(getAuthenticatedUserId(req));
+    res.json(buildSuccessResponse(devices, 'Fetched assigned devices'));
+}
+
+export async function listMyRequests(
+    req: Request,
+    res: Response,
+): Promise<void> {
+    const requests = await getMyRequests(getAuthenticatedUserId(req));
     res.json(buildSuccessResponse(requests, 'My devices fetched successfully'));
+}
+
+export async function getMyRequest(req: Request, res: Response) {
+    const detail = await getMyRequestByUserId(getAuthenticatedUserId(req));
+    res.json(
+        buildSuccessResponse(detail, 'List of request fetched successfully.'),
+    );
 }
 
 export async function getMyDeviceDetail(
