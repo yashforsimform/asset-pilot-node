@@ -1,12 +1,69 @@
 import { apiExamples } from './api-examples';
 
+const authHeaderParameters = [
+    { $ref: '#/components/parameters/headerUserId' },
+    { $ref: '#/components/parameters/headerUserRole' },
+    { $ref: '#/components/parameters/headerManagerId' },
+    { $ref: '#/components/parameters/headerUserName' },
+];
+
+function pathUuidParam(name: string, example: string) {
+    return {
+        name,
+        in: 'path',
+        required: true,
+        schema: { type: 'string', format: 'uuid' },
+        example,
+    };
+}
+
+function requestBody(schemaRef: string, examples: object) {
+    return {
+        required: true,
+        content: {
+            'application/json': {
+                schema: { $ref: schemaRef },
+                examples,
+            },
+        },
+    };
+}
+
+function optionalRequestBody(schemaRef: string, examples: object) {
+    return {
+        required: false,
+        content: {
+            'application/json': {
+                schema: { $ref: schemaRef },
+                examples,
+            },
+        },
+    };
+}
+
+function jsonResponse(description: string, examples: object) {
+    return {
+        description,
+        content: {
+            'application/json': {
+                schema: { $ref: '#/components/schemas/ApiSuccess' },
+                examples,
+            },
+        },
+    };
+}
+
+function operationParameters(...parameters: object[]) {
+    return [...authHeaderParameters, ...parameters];
+}
+
 export const openApiDocument = {
     openapi: '3.0.3',
     info: {
         title: 'Asset Pilot Mobile API',
         version: '1.0.0',
         description:
-            'Employee mobile API covering device list/detail, requests, extensions, returns, support, and handover workflows.',
+            'Employee mobile API covering device list/detail, requests, approvals, extensions, returns, support, and handover workflows. Examples are based on dump.sql from 2026-07-04.',
     },
     servers: [
         {
@@ -14,12 +71,62 @@ export const openApiDocument = {
             description: 'Versioned mobile API',
         },
     ],
+    tags: [
+        { name: 'Health' },
+        { name: 'My Requests' },
+        { name: 'Requests' },
+        { name: 'Devices' },
+        { name: 'Manager' },
+        { name: 'Extensions' },
+        { name: 'Returns' },
+        { name: 'Support' },
+        { name: 'Handover' },
+    ],
+    security: [{ headerUserId: [] }],
     components: {
         securitySchemes: {
-            headerUser: {
+            headerUserId: {
                 type: 'apiKey',
                 in: 'header',
                 name: 'x-user-id',
+                description:
+                    'Authenticated user id consumed by getAuthenticatedUserId().',
+            },
+        },
+        parameters: {
+            headerUserId: {
+                name: 'x-user-id',
+                in: 'header',
+                required: true,
+                schema: { type: 'string', format: 'uuid' },
+                example: apiExamples.ids.defaultUserId,
+                description:
+                    'Required for authenticated mobile flows. Try Victor for employee device/support examples, Paul for manager approval examples, Alice for handover owner actions, and Bob for handover borrower actions.',
+            },
+            headerUserRole: {
+                name: 'x-user-role',
+                in: 'header',
+                required: false,
+                schema: {
+                    type: 'string',
+                    enum: ['employee', 'manager', 'it_admin'],
+                    default: 'employee',
+                },
+                example: 'employee',
+            },
+            headerManagerId: {
+                name: 'x-manager-id',
+                in: 'header',
+                required: false,
+                schema: { type: 'string', format: 'uuid', nullable: true },
+                example: apiExamples.users.victor.managerId,
+            },
+            headerUserName: {
+                name: 'x-user-name',
+                in: 'header',
+                required: false,
+                schema: { type: 'string', default: 'Demo User' },
+                example: apiExamples.users.victor.name,
             },
         },
         schemas: {
@@ -31,17 +138,22 @@ export const openApiDocument = {
                     request_id: { type: 'string', format: 'uuid' },
                 },
             },
+            ApiSuccess: {
+                type: 'object',
+                required: ['statusCode', 'data', 'message', 'meta', 'success'],
+                properties: {
+                    statusCode: { type: 'integer' },
+                    data: {},
+                    message: { type: 'string' },
+                    meta: { $ref: '#/components/schemas/ApiMeta' },
+                    success: { type: 'boolean', enum: [true] },
+                },
+            },
             ApiError: {
                 type: 'object',
-                required: [
-                    'status_code',
-                    'message',
-                    'error',
-                    'meta',
-                    'success',
-                ],
+                required: ['statusCode', 'message', 'error', 'meta', 'success'],
                 properties: {
-                    status_code: { type: 'integer' },
+                    statusCode: { type: 'integer' },
                     message: { type: 'string' },
                     error: {
                         type: 'object',
@@ -70,7 +182,6 @@ export const openApiDocument = {
                     note: { type: 'string' },
                     isWfh: { type: 'boolean' },
                 },
-                example: apiExamples.createRequest,
             },
             CreateExtensionRequestInput: {
                 type: 'object',
@@ -78,18 +189,13 @@ export const openApiDocument = {
                 properties: {
                     extended_to: { type: 'string', format: 'date-time' },
                 },
-                example: apiExamples.createExtensionRequest,
             },
             ReturnDeviceInput: {
                 type: 'object',
                 required: ['return_tracking_url'],
                 properties: {
-                    return_tracking_url: {
-                        type: 'string',
-                        format: 'uri',
-                    },
+                    return_tracking_url: { type: 'string', format: 'uri' },
                 },
-                example: apiExamples.returnDevice,
             },
             CreateSupportRequestInput: {
                 type: 'object',
@@ -99,9 +205,12 @@ export const openApiDocument = {
                         type: 'string',
                         enum: ['update', 'damage', 'lost'],
                     },
-                    description: { type: 'string' },
+                    description: {
+                        type: 'string',
+                        minLength: 1,
+                        maxLength: 5000,
+                    },
                 },
-                example: apiExamples.createSupportRequest,
             },
             CreateHandoverRequestInput: {
                 type: 'object',
@@ -113,14 +222,12 @@ export const openApiDocument = {
                         minimum: 1,
                     },
                 },
-                example: apiExamples.createHandoverRequest,
             },
             ManagerApproveInput: {
                 type: 'object',
                 properties: {
                     managerDecisionNote: { type: 'string' },
                 },
-                example: apiExamples.managerApprove,
             },
             ManagerRejectInput: {
                 type: 'object',
@@ -128,7 +235,6 @@ export const openApiDocument = {
                     managerDecisionNote: { type: 'string' },
                     rejectedReason: { type: 'string' },
                 },
-                example: apiExamples.managerReject,
             },
         },
         responses: {
@@ -148,30 +254,83 @@ export const openApiDocument = {
                     },
                 },
             },
+            Conflict: {
+                description: 'Workflow state conflict',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ApiError' },
+                    },
+                },
+            },
         },
     },
-    security: [{ headerUser: [] }],
     paths: {
         '/health': {
             get: {
                 summary: 'Health check',
                 tags: ['Health'],
-                responses: { '200': { description: 'Server is healthy' } },
+                security: [],
+                responses: {
+                    '200': jsonResponse(
+                        'Server is healthy',
+                        apiExamples.responses.health,
+                    ),
+                },
+            },
+        },
+        '/me/requests': {
+            get: {
+                summary: 'Screen 3 - My Requests',
+                tags: ['My Requests'],
+                parameters: operationParameters(),
+                responses: {
+                    '200': jsonResponse(
+                        'My asset requests',
+                        apiExamples.responses.myRequests,
+                    ),
+                },
+            },
+            post: {
+                summary: 'Screen 3 - Create Request',
+                tags: ['Requests'],
+                parameters: operationParameters(),
+                requestBody: requestBody(
+                    '#/components/schemas/CreateRequestInput',
+                    apiExamples.requestBodies.createRequest,
+                ),
+                responses: {
+                    '201': jsonResponse(
+                        'Request created',
+                        apiExamples.responses.requestCreated,
+                    ),
+                    '400': { $ref: '#/components/responses/BadRequest' },
+                    '404': { $ref: '#/components/responses/NotFound' },
+                },
+            },
+        },
+        '/me/request': {
+            get: {
+                summary: 'Compatibility - Current User Requests',
+                tags: ['My Requests'],
+                parameters: operationParameters(),
+                responses: {
+                    '200': jsonResponse(
+                        'Current user request list',
+                        apiExamples.responses.myRequests,
+                    ),
+                },
             },
         },
         '/me/devices': {
             get: {
                 summary: 'Screen 1 - My Devices',
                 tags: ['Devices'],
+                parameters: operationParameters(),
                 responses: {
-                    '200': {
-                        description: 'Assigned requests',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.myDevicesResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Assigned devices',
+                        apiExamples.responses.myDevices,
+                    ),
                 },
             },
         },
@@ -180,54 +339,16 @@ export const openApiDocument = {
                 summary:
                     'Screen 2 and Screen 8 - Device Detail / Handover lookup',
                 tags: ['Devices', 'Handover'],
-                parameters: [
-                    { $ref: '#/paths/~1me~1devices~1{itemId}/parameters/0' },
-                ],
+                parameters: operationParameters(
+                    pathUuidParam('itemId', apiExamples.ids.itemId),
+                ),
                 responses: {
-                    '200': {
-                        description: 'Device detail',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.deviceDetailResponse,
-                            },
-                        },
-                    },
-                    '404': { $ref: '#/components/responses/NotFound' },
-                },
-            },
-            parameters: [
-                {
-                    name: 'itemId',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
-        },
-        '/me/requests': {
-            post: {
-                summary: 'Screen 3 - Create Request',
-                tags: ['Requests'],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/CreateRequestInput',
-                            },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'Request created',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.requestCreatedResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Device detail',
+                        apiExamples.responses.deviceDetail,
+                    ),
                     '400': { $ref: '#/components/responses/BadRequest' },
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
         },
@@ -235,15 +356,12 @@ export const openApiDocument = {
             get: {
                 summary: 'Screen 4 - List Manager Pending Approvals',
                 tags: ['Manager'],
+                parameters: operationParameters(),
                 responses: {
-                    '200': {
-                        description: 'Pending approvals',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.managerApprovalsResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Pending approvals',
+                        apiExamples.responses.managerApprovals,
+                    ),
                 },
             },
         },
@@ -251,241 +369,174 @@ export const openApiDocument = {
             patch: {
                 summary: 'Screen 4 - Approve Request',
                 tags: ['Manager'],
-                parameters: [
-                    {
-                        $ref: '#/paths/~1manager~1requests~1{requestId}~1approve/parameters/0',
-                    },
-                ],
-                requestBody: {
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/ManagerApproveInput',
-                            },
-                        },
-                    },
-                },
+                parameters: operationParameters(
+                    pathUuidParam(
+                        'requestId',
+                        apiExamples.ids.managerApprovalRequestId,
+                    ),
+                ),
+                requestBody: optionalRequestBody(
+                    '#/components/schemas/ManagerApproveInput',
+                    apiExamples.requestBodies.managerApprove,
+                ),
                 responses: {
-                    '200': {
-                        description: 'Request approved',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.requestCreatedResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Request approved',
+                        apiExamples.responses.managerDecision,
+                    ),
+                    '400': { $ref: '#/components/responses/BadRequest' },
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'requestId',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/manager/requests/{requestId}/reject': {
             patch: {
                 summary: 'Screen 4 - Reject Request',
                 tags: ['Manager'],
-                parameters: [
-                    {
-                        $ref: '#/paths/~1manager~1requests~1{requestId}~1reject/parameters/0',
-                    },
-                ],
-                requestBody: {
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/ManagerRejectInput',
-                            },
-                        },
-                    },
-                },
+                parameters: operationParameters(
+                    pathUuidParam(
+                        'requestId',
+                        apiExamples.ids.managerApprovalRequestId,
+                    ),
+                ),
+                requestBody: optionalRequestBody(
+                    '#/components/schemas/ManagerRejectInput',
+                    apiExamples.requestBodies.managerReject,
+                ),
                 responses: {
-                    '200': {
-                        description: 'Request rejected',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.requestCreatedResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Request rejected',
+                        apiExamples.responses.managerDecision,
+                    ),
+                    '400': { $ref: '#/components/responses/BadRequest' },
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'requestId',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/devices/{itemId}/extension-requests': {
             get: {
                 summary: 'Screen 5 - List Device Extension Requests',
                 tags: ['Extensions'],
+                parameters: operationParameters(
+                    pathUuidParam('itemId', apiExamples.items.boseHeadset.id),
+                ),
                 responses: {
-                    '200': {
-                        description: 'Extension history',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.extensionRequestsResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Extension history',
+                        apiExamples.responses.extensionRequests,
+                    ),
                 },
             },
             post: {
                 summary: 'Screen 5 - Create Extension Request',
                 tags: ['Extensions'],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/CreateExtensionRequestInput',
-                            },
-                        },
-                    },
-                },
+                parameters: operationParameters(
+                    pathUuidParam('itemId', apiExamples.items.dellXps.id),
+                ),
+                requestBody: requestBody(
+                    '#/components/schemas/CreateExtensionRequestInput',
+                    apiExamples.requestBodies.createExtensionRequest,
+                ),
                 responses: {
-                    '201': {
-                        description: 'Extension created',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.extensionRequestDetailResponse,
-                            },
-                        },
-                    },
+                    '201': jsonResponse(
+                        'Extension created',
+                        apiExamples.responses.extensionDetail,
+                    ),
+                    '400': { $ref: '#/components/responses/BadRequest' },
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'itemId',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/extension-requests/{id}': {
             get: {
                 summary: 'Screen 5 - Extension Request Detail',
                 tags: ['Extensions'],
+                parameters: operationParameters(
+                    pathUuidParam('id', apiExamples.ids.extensionRequestId),
+                ),
                 responses: {
-                    '200': {
-                        description: 'Extension detail',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.extensionRequestDetailResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Extension detail',
+                        apiExamples.responses.extensionDetail,
+                    ),
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'id',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/devices/{itemId}/return': {
             post: {
                 summary: 'Screen 6 - Initiate WFH Return',
+                description:
+                    'The current dump.sql has assigned devices, but no active assigned request that is both current-owned and isWfh=true. The provided body examples are valid; use this after creating or seeding a WFH assignment.',
                 tags: ['Returns'],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/ReturnDeviceInput',
-                            },
-                        },
-                    },
-                },
+                parameters: operationParameters(
+                    pathUuidParam('itemId', apiExamples.items.dellXps.id),
+                ),
+                requestBody: requestBody(
+                    '#/components/schemas/ReturnDeviceInput',
+                    apiExamples.requestBodies.returnDevice,
+                ),
                 responses: {
-                    '200': {
-                        description: 'Return initiated',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.returnInitiatedResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Return initiated',
+                        apiExamples.responses.returnInitiated,
+                    ),
+                    '400': { $ref: '#/components/responses/BadRequest' },
+                    '404': { $ref: '#/components/responses/NotFound' },
+                    '409': { $ref: '#/components/responses/Conflict' },
                 },
             },
-            parameters: [
-                {
-                    name: 'itemId',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/devices/{itemId}/support-requests': {
             post: {
                 summary: 'Screen 7 - File Support Request',
                 tags: ['Support'],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/CreateSupportRequestInput',
-                            },
-                        },
-                    },
-                },
+                parameters: operationParameters(
+                    pathUuidParam('itemId', apiExamples.items.dellXps.id),
+                ),
+                requestBody: requestBody(
+                    '#/components/schemas/CreateSupportRequestInput',
+                    apiExamples.requestBodies.createSupportRequest,
+                ),
                 responses: {
-                    '201': {
-                        description: 'Support request created',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.supportRequestDetailResponse,
-                            },
-                        },
-                    },
+                    '201': jsonResponse(
+                        'Support request created',
+                        apiExamples.responses.supportCreated,
+                    ),
+                    '400': { $ref: '#/components/responses/BadRequest' },
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'itemId',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/support-requests': {
             get: {
                 summary: 'Screen 7 - List My Support Requests',
                 tags: ['Support'],
-                parameters: [
-                    {
-                        name: 'status',
-                        in: 'query',
-                        schema: {
-                            type: 'string',
-                            enum: ['open', 'in_progress', 'resolved'],
+                parameters: operationParameters({
+                    name: 'status',
+                    in: 'query',
+                    required: false,
+                    schema: {
+                        type: 'string',
+                        enum: ['open', 'in_progress', 'resolved'],
+                    },
+                    examples: {
+                        open: { summary: 'Open only', value: 'open' },
+                        inProgress: {
+                            summary: 'In progress only',
+                            value: 'in_progress',
+                        },
+                        resolved: {
+                            summary: 'Resolved only',
+                            value: 'resolved',
                         },
                     },
-                ],
+                }),
                 responses: {
-                    '200': {
-                        description: 'Support requests',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.supportRequestsResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Support requests',
+                        apiExamples.responses.supportRequests,
+                    ),
                 },
             },
         },
@@ -493,71 +544,60 @@ export const openApiDocument = {
             get: {
                 summary: 'Screen 7 - Support Request Detail',
                 tags: ['Support'],
+                parameters: operationParameters(
+                    pathUuidParam('id', apiExamples.ids.supportRequestId),
+                ),
                 responses: {
-                    '200': {
-                        description: 'Support request detail',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.supportRequestDetailResponse,
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Support request detail',
+                        apiExamples.responses.supportDetail,
+                    ),
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'id',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/handover-requests': {
             get: {
                 summary: 'Screen 8 - List My Handover Requests',
                 tags: ['Handover'],
-                parameters: [
-                    {
-                        name: 'as',
-                        in: 'query',
-                        required: true,
-                        schema: { type: 'string', enum: ['borrower', 'owner'] },
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Handover requests',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.handoverRequestsResponse,
-                            },
+                parameters: operationParameters({
+                    name: 'as',
+                    in: 'query',
+                    required: true,
+                    schema: { type: 'string', enum: ['borrower', 'owner'] },
+                    examples: {
+                        borrower: {
+                            summary: 'Current user as borrower',
+                            value: 'borrower',
+                        },
+                        owner: {
+                            summary: 'Current user as owner',
+                            value: 'owner',
                         },
                     },
+                }),
+                responses: {
+                    '200': jsonResponse(
+                        'Handover requests',
+                        apiExamples.responses.handoverRequests,
+                    ),
                 },
             },
             post: {
                 summary: 'Screen 8 - Create Handover Request',
                 tags: ['Handover'],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/CreateHandoverRequestInput',
-                            },
-                        },
-                    },
-                },
+                parameters: operationParameters(),
+                requestBody: requestBody(
+                    '#/components/schemas/CreateHandoverRequestInput',
+                    apiExamples.requestBodies.createHandoverRequest,
+                ),
                 responses: {
-                    '201': {
-                        description: 'Handover request created',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.handoverRequestsResponse[0],
-                            },
-                        },
-                    },
+                    '201': jsonResponse(
+                        'Handover request created',
+                        apiExamples.responses.handoverCreated,
+                    ),
+                    '400': { $ref: '#/components/responses/BadRequest' },
+                    '409': { $ref: '#/components/responses/Conflict' },
                 },
             },
         },
@@ -565,97 +605,69 @@ export const openApiDocument = {
             patch: {
                 summary: 'Screen 8 - Accept Handover Request',
                 tags: ['Handover'],
+                parameters: operationParameters(
+                    pathUuidParam('id', apiExamples.ids.handoverRequestId),
+                ),
                 responses: {
-                    '200': {
-                        description: 'Handover accepted',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.handoverRequestsResponse[0],
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Handover accepted',
+                        apiExamples.responses.handoverDecision,
+                    ),
+                    '404': { $ref: '#/components/responses/NotFound' },
+                    '409': { $ref: '#/components/responses/Conflict' },
                 },
             },
-            parameters: [
-                {
-                    name: 'id',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/handover-requests/{id}/reject': {
             patch: {
                 summary: 'Screen 8 - Reject Handover Request',
                 tags: ['Handover'],
+                parameters: operationParameters(
+                    pathUuidParam('id', apiExamples.ids.handoverRequestId),
+                ),
                 responses: {
-                    '200': {
-                        description: 'Handover rejected',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.handoverRequestsResponse[0],
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Handover rejected',
+                        apiExamples.responses.handoverDecision,
+                    ),
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'id',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/handover-requests/{id}/cancel': {
             patch: {
                 summary: 'Screen 8 - Cancel Handover Request',
                 tags: ['Handover'],
+                parameters: operationParameters(
+                    pathUuidParam('id', apiExamples.ids.handoverRequestId),
+                ),
                 responses: {
-                    '200': {
-                        description: 'Handover cancelled',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.handoverRequestsResponse[0],
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Handover cancelled',
+                        apiExamples.responses.handoverDecision,
+                    ),
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'id',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
         '/me/handover-requests/{id}/complete': {
             patch: {
                 summary: 'Screen 8 - Complete Handover Request',
                 tags: ['Handover'],
+                parameters: operationParameters(
+                    pathUuidParam(
+                        'id',
+                        apiExamples.ids.acceptedHandoverRequestId,
+                    ),
+                ),
                 responses: {
-                    '200': {
-                        description: 'Handover completed',
-                        content: {
-                            'application/json': {
-                                example: apiExamples.handoverRequestsResponse[0],
-                            },
-                        },
-                    },
+                    '200': jsonResponse(
+                        'Handover completed',
+                        apiExamples.responses.handoverDecision,
+                    ),
+                    '404': { $ref: '#/components/responses/NotFound' },
                 },
             },
-            parameters: [
-                {
-                    name: 'id',
-                    in: 'path',
-                    required: true,
-                    schema: { type: 'string', format: 'uuid' },
-                },
-            ],
         },
     },
 } as const;

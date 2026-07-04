@@ -6,6 +6,252 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  name                String             @db.VarChar(255)
+  email               String             @unique @db.VarChar(255)
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  isActive            Boolean            @default(true) @map("is_active")
+  managerId           String?            @map("manager_id") @db.Uuid
+  updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String             @id @default(uuid()) @db.Uuid
+  role                UserRole           @default(employee)
+  password_hash       String?
+  deviceLogs          DeviceLog[]        @relation("DeviceLogActor")
+  itDecidedExtensions ExtensionRequest[] @relation("ExtensionITDecision")
+  managedExtensions   ExtensionRequest[] @relation("ExtensionManager")
+  extensionRequests   ExtensionRequest[] @relation("ExtensionRequester")
+  borrowedHandovers   HandoverRequest[]  @relation("HandoverBorrower")
+  ownedHandovers      HandoverRequest[]  @relation("HandoverOwner")
+  assignedItems       Item[]             @relation("ItemOwner")
+  cancelledRequests   Request[]          @relation("RequestCancelledBy")
+  completedRequests   Request[]          @relation("RequestCompletedBy")
+  itDecidedRequests   Request[]          @relation("RequestITDecision")
+  managedRequests     Request[]          @relation("RequestManager")
+  requests            Request[]          @relation("RequestRequester")
+  supportRequests     SupportRequest[]   @relation("SupportRequester")
+  resolvedSupports    SupportRequest[]   @relation("SupportResolver")
+  manager             User?              @relation("ManagerEmployees", fields: [managerId], references: [id])
+  employees           User[]             @relation("ManagerEmployees")
+
+  @@index([managerId])
+  @@index([role])
+  @@map("user")
+}
+
+model ItemCategory {
+  name                String    @unique @db.VarChar(255)
+  description         String?
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  isActive            Boolean   @default(true) @map("is_active")
+  requiresMgrApproval Boolean   @default(false) @map("requires_mgr_approval")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String    @id @default(uuid()) @db.Uuid
+  items               Item[]
+  requests            Request[]
+
+  @@map("item_category")
+}
+
+model Item {
+  name                String            @db.VarChar(255)
+  categoryId          String            @map("category_id") @db.Uuid
+  clientName          String?           @map("client_name") @db.VarChar(255)
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  currentOwnerId      String?           @map("current_owner_id") @db.Uuid
+  ownerType           OwnerType         @default(company) @map("owner_type")
+  purchaseDate        DateTime?         @map("purchase_date") @db.Date
+  qrCodeToken         String            @unique @default(uuid()) @map("qr_code_token") @db.Uuid
+  serialNo            String            @unique @map("serial_no") @db.VarChar(255)
+  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String            @id @default(uuid()) @db.Uuid
+  status              DeviceStatus      @default(available)
+  deviceLogs          DeviceLog[]
+  handoverRequests    HandoverRequest[]
+  category            ItemCategory      @relation(fields: [categoryId], references: [id])
+  currentOwner        User?             @relation("ItemOwner", fields: [currentOwnerId], references: [id])
+  assignedRequests    Request[]         @relation("AssignedItem")
+  supportRequests     SupportRequest[]  @relation("ItemSupportRequests")
+  swapSupportRequests SupportRequest[]  @relation("SupportSwapItem")
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([currentOwnerId])
+  @@index([categoryId, status], map: "idx_item_available_by_category")
+  @@map("item")
+}
+
+model Request {
+  note                String?
+  assignedFrom        DateTime?          @map("assigned_from") @db.Timestamptz(6)
+  assignedItemId      String?            @map("assigned_item_id") @db.Uuid
+  assignedTo          DateTime?          @map("assigned_to") @db.Timestamptz(6)
+  cancelledAt         DateTime?          @map("cancelled_at") @db.Timestamptz(6)
+  cancelledById       String?            @map("cancelled_by") @db.Uuid
+  categoryId          String             @map("category_id") @db.Uuid
+  completedAt         DateTime?          @map("completed_at") @db.Timestamptz(6)
+  completedById       String?            @map("completed_by") @db.Uuid
+  completedNextStatus DeviceStatus?      @map("completed_next_status")
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  isClientDirect      Boolean            @default(false) @map("is_client_direct")
+  isWfh               Boolean            @default(false) @map("is_wfh")
+  itDecidedAt         DateTime?          @map("it_decided_at") @db.Timestamptz(6)
+  itDecidedById       String?            @map("it_decided_by") @db.Uuid
+  itDecisionNote      String?            @map("it_decision_note")
+  managerDecidedAt    DateTime?          @map("manager_decided_at") @db.Timestamptz(6)
+  managerDecisionNote String?            @map("manager_decision_note")
+  managerId           String?            @map("manager_id") @db.Uuid
+  mgrApprovalStatus   MgrApprovalStatus  @default(not_required) @map("mgr_approval_status")
+  rejectedBy          RejectedBy?        @map("rejected_by")
+  rejectedReason      String?            @map("rejected_reason")
+  requestedFrom       DateTime           @map("requested_from") @db.Timestamptz(6)
+  requestedTo         DateTime           @map("requested_to") @db.Timestamptz(6)
+  requesterId         String             @map("requester_id") @db.Uuid
+  requiresMgrApproval Boolean            @default(false) @map("requires_mgr_approval")
+  returnInitiatedAt   DateTime?          @map("return_initiated_at") @db.Timestamptz(6)
+  returnTrackingUrl   String?            @map("return_tracking_url")
+  shipCompletedAt     DateTime?          @map("ship_completed_at") @db.Timestamptz(6)
+  shipInitiatedAt     DateTime?          @map("ship_initiated_at") @db.Timestamptz(6)
+  shipTrackingUrl     String?            @map("ship_tracking_url")
+  updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String             @id @default(uuid()) @db.Uuid
+  priority            RequestPriority    @default(medium)
+  status              RequestStatus      @default(requested)
+  deviceLogs          DeviceLog[]        @relation("RequestDeviceLogs")
+  extensionRequests   ExtensionRequest[] @relation("RequestExtensions")
+  assignedItem        Item?              @relation("AssignedItem", fields: [assignedItemId], references: [id])
+  cancelledBy         User?              @relation("RequestCancelledBy", fields: [cancelledById], references: [id])
+  category            ItemCategory       @relation(fields: [categoryId], references: [id])
+  completedBy         User?              @relation("RequestCompletedBy", fields: [completedById], references: [id])
+  itDecidedBy         User?              @relation("RequestITDecision", fields: [itDecidedById], references: [id])
+  manager             User?              @relation("RequestManager", fields: [managerId], references: [id])
+  requester           User               @relation("RequestRequester", fields: [requesterId], references: [id])
+  supportRequests     SupportRequest[]   @relation("RequestSupport")
+
+  @@index([requesterId])
+  @@index([status])
+  @@index([assignedItemId])
+  @@index([categoryId])
+  @@index([priority, createdAt], map: "idx_request_it_queue")
+  @@index([assignedItemId, status], map: "idx_request_item_status")
+  @@index([assignedItemId, assignedFrom, assignedTo], map: "idx_request_date_range")
+  @@map("request")
+}
+
+model ExtensionRequest {
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  currentAssignedTo   DateTime          @map("current_assigned_to") @db.Timestamptz(6)
+  extendedTo          DateTime          @map("extended_to") @db.Timestamptz(6)
+  itDecidedAt         DateTime?         @map("it_decided_at") @db.Timestamptz(6)
+  itDecidedById       String?           @map("it_decided_by") @db.Uuid
+  itNote              String?           @map("it_note")
+  managerDecidedAt    DateTime?         @map("manager_decided_at") @db.Timestamptz(6)
+  managerId           String?           @map("manager_id") @db.Uuid
+  managerNote         String?           @map("manager_note")
+  mgrApprovalStatus   MgrApprovalStatus @default(not_required) @map("mgr_approval_status")
+  originalRequestId   String            @map("original_request_id") @db.Uuid
+  requesterId         String            @map("requester_id") @db.Uuid
+  requiresMgrApproval Boolean           @default(false) @map("requires_mgr_approval")
+  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String            @id @default(uuid()) @db.Uuid
+  status              ExtensionStatus   @default(pending)
+  deviceLogs          DeviceLog[]       @relation("ExtensionRequestLogs")
+  itDecidedBy         User?             @relation("ExtensionITDecision", fields: [itDecidedById], references: [id])
+  manager             User?             @relation("ExtensionManager", fields: [managerId], references: [id])
+  originalRequest     Request           @relation("RequestExtensions", fields: [originalRequestId], references: [id])
+  requester           User              @relation("ExtensionRequester", fields: [requesterId], references: [id])
+
+  @@map("extension_request")
+}
+
+model HandoverRequest {
+  note                   String?
+  borrowerId             String         @map("borrower_id") @db.Uuid
+  completedAt            DateTime?      @map("completed_at") @db.Timestamptz(6)
+  createdAt              DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  decidedAt              DateTime?      @map("decided_at") @db.Timestamptz(6)
+  itemId                 String         @map("item_id") @db.Uuid
+  ownerId                String         @map("owner_id") @db.Uuid
+  requestedAt            DateTime       @default(now()) @map("requested_at") @db.Timestamptz(6)
+  requestedDurationHours Int?           @map("requested_duration_hours")
+  updatedAt              DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                     String         @id @default(uuid()) @db.Uuid
+  status                 HandoverStatus @default(requested)
+  deviceLogs             DeviceLog[]    @relation("HandoverRequestLogs")
+  borrower               User           @relation("HandoverBorrower", fields: [borrowerId], references: [id])
+  item                   Item           @relation(fields: [itemId], references: [id])
+  owner                  User           @relation("HandoverOwner", fields: [ownerId], references: [id])
+
+  @@index([itemId])
+  @@index([borrowerId])
+  @@index([ownerId])
+  @@index([itemId, status], map: "idx_handover_item_status")
+  @@map("handover_request")
+}
+
+model SupportRequest {
+  description     String
+  autoClosed      Boolean            @default(false) @map("auto_closed")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  filedAt         DateTime           @default(now()) @map("filed_at") @db.Timestamptz(6)
+  itNote          String?            @map("it_note")
+  itemId          String             @map("item_id") @db.Uuid
+  requestId       String?            @map("request_id") @db.Uuid
+  requesterId     String             @map("requester_id") @db.Uuid
+  resolvedAt      DateTime?          @map("resolved_at") @db.Timestamptz(6)
+  resolvedById    String?            @map("resolved_by") @db.Uuid
+  swappedToItemId String?            @map("swapped_to_item_id") @db.Uuid
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id              String             @id @default(uuid()) @db.Uuid
+  type            SupportType
+  status          SupportStatus      @default(open)
+  resolution      SupportResolution?
+  deviceLogs      DeviceLog[]        @relation("SupportRequestLogs")
+  item            Item               @relation("ItemSupportRequests", fields: [itemId], references: [id])
+  request         Request?           @relation("RequestSupport", fields: [requestId], references: [id])
+  requester       User               @relation("SupportRequester", fields: [requesterId], references: [id])
+  resolver        User?              @relation("SupportResolver", fields: [resolvedById], references: [id])
+  swappedToItem   Item?              @relation("SupportSwapItem", fields: [swappedToItemId], references: [id])
+
+  @@index([itemId])
+  @@index([status])
+  @@index([requestId])
+  @@index([filedAt], map: "idx_support_open_queue")
+  @@map("support_request")
+}
+
+model DeviceLog {
+  note               String?
+  metadata           Json              @default("{}")
+  actorId            String?           @map("actor_id") @db.Uuid
+  actorRole          ActorRole         @map("actor_role")
+  eventType          DeviceLogEvent    @map("event_type")
+  extensionRequestId String?           @map("extension_request_id") @db.Uuid
+  fromValue          String?           @map("from_value")
+  handoverRequestId  String?           @map("handover_request_id") @db.Uuid
+  isMilestone        Boolean           @default(false) @map("is_milestone")
+  itemId             String            @map("item_id") @db.Uuid
+  occurredAt         DateTime          @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  requestId          String?           @map("request_id") @db.Uuid
+  supportRequestId   String?           @map("support_request_id") @db.Uuid
+  toValue            String?           @map("to_value")
+  id                 String            @id @default(uuid()) @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  passwordHash       String?
+  actor              User?             @relation("DeviceLogActor", fields: [actorId], references: [id])
+  extensionRequest   ExtensionRequest? @relation("ExtensionRequestLogs", fields: [extensionRequestId], references: [id])
+  handoverRequest    HandoverRequest?  @relation("HandoverRequestLogs", fields: [handoverRequestId], references: [id])
+  item               Item              @relation(fields: [itemId], references: [id])
+  request            Request?          @relation("RequestDeviceLogs", fields: [requestId], references: [id])
+  supportRequest     SupportRequest?   @relation("SupportRequestLogs", fields: [supportRequestId], references: [id])
+
+  @@index([itemId, occurredAt], map: "idx_device_log_item_time")
+  @@index([itemId, occurredAt], map: "idx_device_log_milestones")
+  @@index([requestId])
+  @@index([eventType])
+  @@map("device_log")
+}
+
 enum UserRole {
   employee
   manager
@@ -151,261 +397,4 @@ enum RejectedBy {
   it_admin_cancel
 
   @@map("rejected_by_enum")
-}
-
-model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @db.VarChar(255)
-  email     String   @unique @db.VarChar(255)
-  role      UserRole @default(employee)
-  managerId String?  @map("manager_id") @db.Uuid
-  manager   User?    @relation("ManagerEmployees", fields: [managerId], references: [id])
-  employees User[]   @relation("ManagerEmployees")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  requests            Request[]          @relation("RequestRequester")
-  managedRequests     Request[]          @relation("RequestManager")
-  assignedItems       Item[]             @relation("ItemOwner")
-  ownedHandovers      HandoverRequest[]  @relation("HandoverOwner")
-  borrowedHandovers   HandoverRequest[]  @relation("HandoverBorrower")
-  extensionRequests   ExtensionRequest[] @relation("ExtensionRequester")
-  managedExtensions   ExtensionRequest[] @relation("ExtensionManager")
-  itDecidedExtensions ExtensionRequest[] @relation("ExtensionITDecision")
-  supportRequests     SupportRequest[]   @relation("SupportRequester")
-  resolvedSupports    SupportRequest[]   @relation("SupportResolver")
-  deviceLogs          DeviceLog[]        @relation("DeviceLogActor")
-  itDecidedRequests   Request[]          @relation("RequestITDecision")
-  cancelledRequests   Request[]          @relation("RequestCancelledBy")
-  completedRequests   Request[]          @relation("RequestCompletedBy")
-
-  @@index([managerId])
-  @@index([role])
-  @@map("user")
-}
-
-model ItemCategory {
-  id                  String    @id @default(uuid()) @db.Uuid
-  name                String    @unique @db.VarChar(255)
-  description         String?
-  requiresMgrApproval Boolean   @default(false) @map("requires_mgr_approval")
-  isActive            Boolean   @default(true) @map("is_active")
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-  items               Item[]
-  requests            Request[]
-
-  @@map("item_category")
-}
-
-model Item {
-  id                  String            @id @default(uuid()) @db.Uuid
-  name                String            @db.VarChar(255)
-  serialNo            String            @unique @map("serial_no") @db.VarChar(255)
-  categoryId          String            @map("category_id") @db.Uuid
-  category            ItemCategory      @relation(fields: [categoryId], references: [id])
-  ownerType           OwnerType         @default(company) @map("owner_type")
-  clientName          String?           @map("client_name") @db.VarChar(255)
-  status              DeviceStatus      @default(available)
-  currentOwnerId      String?           @map("current_owner_id") @db.Uuid
-  currentOwner        User?             @relation("ItemOwner", fields: [currentOwnerId], references: [id])
-  purchaseDate        DateTime?         @map("purchase_date") @db.Date
-  qrCodeToken         String            @unique @default(uuid()) @map("qr_code_token") @db.Uuid
-  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-  assignedRequests    Request[]         @relation("AssignedItem")
-  supportRequests     SupportRequest[]  @relation("ItemSupportRequests")
-  swapSupportRequests SupportRequest[]  @relation("SupportSwapItem")
-  handoverRequests    HandoverRequest[]
-  deviceLogs          DeviceLog[]
-
-  @@index([status])
-  @@index([categoryId])
-  @@index([currentOwnerId])
-  @@index([categoryId, status], map: "idx_item_available_by_category")
-  @@map("item")
-}
-
-model Request {
-  id             String       @id @default(uuid()) @db.Uuid
-  requesterId    String       @map("requester_id") @db.Uuid
-  requester      User         @relation("RequestRequester", fields: [requesterId], references: [id])
-  categoryId     String       @map("category_id") @db.Uuid
-  category       ItemCategory @relation(fields: [categoryId], references: [id])
-  assignedItemId String?      @map("assigned_item_id") @db.Uuid
-  assignedItem   Item?        @relation("AssignedItem", fields: [assignedItemId], references: [id])
-
-  requestedFrom DateTime  @map("requested_from") @db.Timestamptz
-  requestedTo   DateTime  @map("requested_to") @db.Timestamptz
-  assignedFrom  DateTime? @map("assigned_from") @db.Timestamptz
-  assignedTo    DateTime? @map("assigned_to") @db.Timestamptz
-
-  status   RequestStatus   @default(requested)
-  priority RequestPriority @default(medium)
-  note     String?
-
-  requiresMgrApproval Boolean           @default(false) @map("requires_mgr_approval")
-  mgrApprovalStatus   MgrApprovalStatus @default(not_required) @map("mgr_approval_status")
-  managerId           String?           @map("manager_id") @db.Uuid
-  manager             User?             @relation("RequestManager", fields: [managerId], references: [id])
-  managerDecisionNote String?           @map("manager_decision_note")
-  managerDecidedAt    DateTime?         @map("manager_decided_at") @db.Timestamptz
-
-  itDecidedById  String?   @map("it_decided_by") @db.Uuid
-  itDecidedBy    User?     @relation("RequestITDecision", fields: [itDecidedById], references: [id])
-  itDecisionNote String?   @map("it_decision_note")
-  itDecidedAt    DateTime? @map("it_decided_at") @db.Timestamptz
-
-  rejectedBy     RejectedBy? @map("rejected_by")
-  rejectedReason String?     @map("rejected_reason")
-  cancelledById  String?     @map("cancelled_by") @db.Uuid
-  cancelledBy    User?       @relation("RequestCancelledBy", fields: [cancelledById], references: [id])
-  cancelledAt    DateTime?   @map("cancelled_at") @db.Timestamptz
-
-  isWfh             Boolean   @default(false) @map("is_wfh")
-  shipTrackingUrl   String?   @map("ship_tracking_url")
-  shipInitiatedAt   DateTime? @map("ship_initiated_at") @db.Timestamptz
-  shipCompletedAt   DateTime? @map("ship_completed_at") @db.Timestamptz
-  returnTrackingUrl String?   @map("return_tracking_url")
-  returnInitiatedAt DateTime? @map("return_initiated_at") @db.Timestamptz
-
-  completedAt         DateTime?     @map("completed_at") @db.Timestamptz
-  completedById       String?       @map("completed_by") @db.Uuid
-  completedBy         User?         @relation("RequestCompletedBy", fields: [completedById], references: [id])
-  completedNextStatus DeviceStatus? @map("completed_next_status")
-  isClientDirect      Boolean       @default(false) @map("is_client_direct")
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  extensionRequests ExtensionRequest[] @relation("RequestExtensions")
-  supportRequests   SupportRequest[]   @relation("RequestSupport")
-  deviceLogs        DeviceLog[]        @relation("RequestDeviceLogs")
-
-  @@index([requesterId])
-  @@index([status])
-  @@index([assignedItemId])
-  @@index([categoryId])
-  @@index([priority, createdAt], map: "idx_request_it_queue")
-  @@index([assignedItemId, status], map: "idx_request_item_status")
-  @@index([assignedItemId, assignedFrom, assignedTo], map: "idx_request_date_range")
-  @@map("request")
-}
-
-model ExtensionRequest {
-  id                  String            @id @default(uuid()) @db.Uuid
-  originalRequestId   String            @map("original_request_id") @db.Uuid
-  originalRequest     Request           @relation("RequestExtensions", fields: [originalRequestId], references: [id])
-  requesterId         String            @map("requester_id") @db.Uuid
-  requester           User              @relation("ExtensionRequester", fields: [requesterId], references: [id])
-  currentAssignedTo   DateTime          @map("current_assigned_to") @db.Timestamptz
-  extendedTo          DateTime          @map("extended_to") @db.Timestamptz
-  status              ExtensionStatus   @default(pending)
-  requiresMgrApproval Boolean           @default(false) @map("requires_mgr_approval")
-  managerId           String?           @map("manager_id") @db.Uuid
-  manager             User?             @relation("ExtensionManager", fields: [managerId], references: [id])
-  mgrApprovalStatus   MgrApprovalStatus @default(not_required) @map("mgr_approval_status")
-  managerNote         String?           @map("manager_note")
-  managerDecidedAt    DateTime?         @map("manager_decided_at") @db.Timestamptz
-  itDecidedById       String?           @map("it_decided_by") @db.Uuid
-  itDecidedBy         User?             @relation("ExtensionITDecision", fields: [itDecidedById], references: [id])
-  itNote              String?           @map("it_note")
-  itDecidedAt         DateTime?         @map("it_decided_at") @db.Timestamptz
-  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  deviceLogs DeviceLog[] @relation("ExtensionRequestLogs")
-
-  @@map("extension_request")
-}
-
-model HandoverRequest {
-  id                     String         @id @default(uuid()) @db.Uuid
-  itemId                 String         @map("item_id") @db.Uuid
-  item                   Item           @relation(fields: [itemId], references: [id])
-  ownerId                String         @map("owner_id") @db.Uuid
-  owner                  User           @relation("HandoverOwner", fields: [ownerId], references: [id])
-  borrowerId             String         @map("borrower_id") @db.Uuid
-  borrower               User           @relation("HandoverBorrower", fields: [borrowerId], references: [id])
-  requestedDurationHours Int?           @map("requested_duration_hours")
-  status                 HandoverStatus @default(requested)
-  requestedAt            DateTime       @default(now()) @map("requested_at") @db.Timestamptz
-  decidedAt              DateTime?      @map("decided_at") @db.Timestamptz
-  completedAt            DateTime?      @map("completed_at") @db.Timestamptz
-  note                   String?
-  createdAt              DateTime       @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt              DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  deviceLogs DeviceLog[] @relation("HandoverRequestLogs")
-
-  @@index([itemId])
-  @@index([borrowerId])
-  @@index([ownerId])
-  @@index([itemId, status], map: "idx_handover_item_status")
-  @@map("handover_request")
-}
-
-model SupportRequest {
-  id              String             @id @default(uuid()) @db.Uuid
-  itemId          String             @map("item_id") @db.Uuid
-  item            Item               @relation("ItemSupportRequests", fields: [itemId], references: [id])
-  requesterId     String             @map("requester_id") @db.Uuid
-  requester       User               @relation("SupportRequester", fields: [requesterId], references: [id])
-  requestId       String?            @map("request_id") @db.Uuid
-  request         Request?           @relation("RequestSupport", fields: [requestId], references: [id])
-  type            SupportType
-  description     String
-  status          SupportStatus      @default(open)
-  resolution      SupportResolution?
-  itNote          String?            @map("it_note")
-  swappedToItemId String?            @map("swapped_to_item_id") @db.Uuid
-  swappedToItem   Item?              @relation("SupportSwapItem", fields: [swappedToItemId], references: [id])
-  filedAt         DateTime           @default(now()) @map("filed_at") @db.Timestamptz
-  resolvedById    String?            @map("resolved_by") @db.Uuid
-  resolver        User?              @relation("SupportResolver", fields: [resolvedById], references: [id])
-  resolvedAt      DateTime?          @map("resolved_at") @db.Timestamptz
-  autoClosed      Boolean            @default(false) @map("auto_closed")
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  deviceLogs DeviceLog[] @relation("SupportRequestLogs")
-
-  @@index([itemId])
-  @@index([status])
-  @@index([requestId])
-  @@index([filedAt], map: "idx_support_open_queue")
-  @@map("support_request")
-}
-
-model DeviceLog {
-  id                 String            @id @default(uuid()) @db.Uuid
-  itemId             String            @map("item_id") @db.Uuid
-  item               Item              @relation(fields: [itemId], references: [id])
-  eventType          DeviceLogEvent    @map("event_type")
-  actorId            String?           @map("actor_id") @db.Uuid
-  actor              User?             @relation("DeviceLogActor", fields: [actorId], references: [id])
-  actorRole          ActorRole         @map("actor_role")
-  requestId          String?           @map("request_id") @db.Uuid
-  request            Request?          @relation("RequestDeviceLogs", fields: [requestId], references: [id])
-  supportRequestId   String?           @map("support_request_id") @db.Uuid
-  supportRequest     SupportRequest?   @relation("SupportRequestLogs", fields: [supportRequestId], references: [id])
-  extensionRequestId String?           @map("extension_request_id") @db.Uuid
-  extensionRequest   ExtensionRequest? @relation("ExtensionRequestLogs", fields: [extensionRequestId], references: [id])
-  handoverRequestId  String?           @map("handover_request_id") @db.Uuid
-  handoverRequest    HandoverRequest?  @relation("HandoverRequestLogs", fields: [handoverRequestId], references: [id])
-  fromValue          String?           @map("from_value")
-  toValue            String?           @map("to_value")
-  note               String?
-  metadata           Json              @default("{}")
-  isMilestone        Boolean           @default(false) @map("is_milestone")
-  occurredAt         DateTime          @default(now()) @map("occurred_at") @db.Timestamptz
-  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  @@index([itemId, occurredAt], map: "idx_device_log_item_time")
-  @@index([itemId, occurredAt], map: "idx_device_log_milestones")
-  @@index([requestId])
-  @@index([eventType])
-  @@map("device_log")
 }
