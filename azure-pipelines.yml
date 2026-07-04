@@ -1,0 +1,48 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # Define these values here OR in the Azure DevOps Pipeline UI:
+  azureServiceConnection: 'your-service-connection-name'
+  
+  # Application Configuration:
+  acrName: 'assetpilotacr2026'
+  imageName: 'asset-pilot'
+  imageTag: 'latest'
+
+stages:
+- stage: BuildAndPush
+  displayName: 'Build and Push Docker Image'
+  jobs:
+  - job: DockerBuildPush
+    displayName: 'Build and Push to ACR'
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Docker Build and Push'
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -e
+
+          echo "Getting ACR credentials..."
+          # Note: Ensure the ACR is already created before this runs
+          ACR_LOGIN_SERVER=$(az acr show --name $(acrName) --query loginServer -o tsv)
+          ACR_USERNAME=$(az acr credential show --name $(acrName) --query "username" -o tsv)
+          ACR_PASSWORD=$(az acr credential show --name $(acrName) --query "passwords[0].value" -o tsv)
+          
+          echo "Logging in to Docker Registry..."
+          echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME --password-stdin
+          
+          echo "Building Docker Image..."
+          FULL_IMAGE_NAME="$ACR_LOGIN_SERVER/$(imageName):$(imageTag)"
+          docker build -t $FULL_IMAGE_NAME .
+          
+          echo "Pushing Docker Image..."
+          docker push $FULL_IMAGE_NAME
+          
+          echo "Build and push complete!"
