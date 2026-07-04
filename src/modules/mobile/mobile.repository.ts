@@ -32,7 +32,7 @@ type DeviceLogInput = {
     isMilestone: boolean;
 };
 
-const db = prisma as PrismaTransaction;
+const db = prisma as unknown as PrismaTransaction;
 
 const delegate = (client: PrismaTransaction, name: string): PrismaDelegate => {
     const modelDelegate = client[name];

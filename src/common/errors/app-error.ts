@@ -8,7 +8,23 @@ export class AppError extends Error {
         code: string,
         message: string,
         details?: unknown,
+    );
+    public constructor(
+        message: string,
+        statusCode: number,
+        code: string,
+        details?: unknown,
+    );
+    public constructor(
+        first: number | string,
+        second: number | string,
+        third: string,
+        details?: unknown,
     ) {
+        const statusCode = typeof first === 'number' ? first : Number(second);
+        const code = typeof first === 'number' ? String(second) : third;
+        const message = typeof first === 'number' ? third : first;
+
         super(message);
         this.statusCode = statusCode;
         this.code = code;

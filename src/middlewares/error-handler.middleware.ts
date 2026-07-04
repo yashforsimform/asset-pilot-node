@@ -5,9 +5,15 @@ import { env } from "../config/env";
 
 export const errorHandlerMiddleware: ErrorRequestHandler = (err, _req, res, _next): void => {
   if (err instanceof AppError) {
+    const details = Array.isArray(err.details)
+      ? err.details
+      : err.details === undefined
+        ? []
+        : [err.details];
+
     res
       .status(err.statusCode)
-      .json(buildErrorResponse(err.message, err.statusCode, err.code, err.details));
+      .json(buildErrorResponse(err.message, err.statusCode, err.code, details));
     return;
   }
 
