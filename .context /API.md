@@ -10,10 +10,22 @@
 
 # API FORMAT
 
+// success
 {
-“data”: ,
-“message”:,
-“statusCode”:,
+"status_code": 200,
+"data": {...},
+"message": "...",
+"meta": { "timestamp": "...", "request_id": "..." } ,
+"success": true,
+}
+
+// error
+{
+"status_code": 400,
+"message": "...",
+"error": { "code": "...", "message": "...", "details": [...] },
+"meta": {...},
+"success": false,
 }
 
 ## 0. Auth / Session

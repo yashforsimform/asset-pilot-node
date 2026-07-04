@@ -16,6 +16,26 @@
 
 ---
 
+## Format
+
+// success
+{
+"status_code": 200,
+"data": {...},
+"message": "...",
+"meta": { "timestamp": "...", "request_id": "..." } ,
+"success": true,
+}
+
+// error
+{
+"status_code": 400,
+"message": "...",
+"error": { "code": "...", "message": "...", "details": [...] },
+"meta": {...},
+"success": false,
+}
+
 ## Screen 1 — My Devices (List)
 
 Wireframe: _"User Assigned list of devices"_
@@ -57,12 +77,12 @@ Wireframe: _"Request form" → select item to request → duration/date → Prio
 - **Request Args:** `request`
 - **Response:** `request`
 - **Backend Logic:**
-  - Validate requester and populate system-controlled fields.
-  - Read `item_category` to determine manager approval requirement and snapshot it into the `request`.
-  - Populate `requester_id` and `manager_id` from the authenticated user.
-  - Set initial `request.status` and `mgr_approval_status` based on `requires_mgr_approval`.
-  - Ignore any client-provided system-managed fields (IDs, approvals, assignment, completion, timestamps, etc.).
-  - Persist the `request`. No `device_log` entry is created since no physical device has been assigned yet.
+    - Validate requester and populate system-controlled fields.
+    - Read `item_category` to determine manager approval requirement and snapshot it into the `request`.
+    - Populate `requester_id` and `manager_id` from the authenticated user.
+    - Set initial `request.status` and `mgr_approval_status` based on `requires_mgr_approval`.
+    - Ignore any client-provided system-managed fields (IDs, approvals, assignment, completion, timestamps, etc.).
+    - Persist the `request`. No `device_log` entry is created since no physical device has been assigned yet.
 
 ---
 
@@ -107,11 +127,11 @@ Wireframe: _"Extended Request"_ (action on Device Detail)
 - **Request Args:** `{ extended_to }`
 - **Response:** `extension_request.*`
 - **Backend Logic:**
-  - Validate `item.current_owner_id = :userId`.
-  - Resolve active `request` (`assigned_item_id = itemId`, `status = 'assigned'`); reject if none.
-  - Validate `extended_to > request.assigned_to`.
-  - Insert `extension_request`: `original_request_id = request.id`, `requester_id = :userId`, `current_assigned_to = request.assigned_to` (snapshot), `extended_to`, `status = 'pending'`, `requires_mgr_approval = request.requires_mgr_approval`, `manager_id = request.manager_id`, `mgr_approval_status = 'pending'` if `requires_mgr_approval = true` else `'not_required'`.
-  - `device_log` insert: `event_type = 'extension_requested'`, `item_id = itemId`, `request_id`, `extension_request_id`, `actor_role = 'employee'`, `is_milestone = false`.
+    - Validate `item.current_owner_id = :userId`.
+    - Resolve active `request` (`assigned_item_id = itemId`, `status = 'assigned'`); reject if none.
+    - Validate `extended_to > request.assigned_to`.
+    - Insert `extension_request`: `original_request_id = request.id`, `requester_id = :userId`, `current_assigned_to = request.assigned_to` (snapshot), `extended_to`, `status = 'pending'`, `requires_mgr_approval = request.requires_mgr_approval`, `manager_id = request.manager_id`, `mgr_approval_status = 'pending'` if `requires_mgr_approval = true` else `'not_required'`.
+    - `device_log` insert: `event_type = 'extension_requested'`, `item_id = itemId`, `request_id`, `extension_request_id`, `actor_role = 'employee'`, `is_milestone = false`.
 
 ### List Extension Requests for a Device
 
@@ -144,13 +164,13 @@ Per `WORKFLOWS.md` §8: **on-site returns are IT-initiated only.** This endpoint
 - **Request Args:** `{ return_tracking_url }`
 - **Response:** `item.*` + `request.*`
 - **Backend Logic:**
-  - Validate `item.current_owner_id = :userId`.
-  - Resolve active `request` (`assigned_item_id = itemId`, `status = 'assigned'`); reject if none.
-  - Validate `request.is_wfh = true` — if false, reject: "Return for this device must be initiated by IT."
-  - Validate `item.status = 'assigned'` — reject if already `return_shipping_pending`.
-  - Update `item.status = 'return_shipping_pending'`.
-  - Update `request.return_tracking_url = return_tracking_url`, `request.return_initiated_at = now()`. `request.status` stays `'assigned'` — transit window is tracked on `item.status` only; `request.status` moves to `'completed'` only when IT confirms physical receipt (IT Admin module, out of scope here).
-  - `device_log` insert: `event_type = 'return_ship_initiated'`, `actor_role = 'employee'`, `item_id = itemId`, `request_id`, `from_value = 'assigned'`, `to_value = 'return_shipping_pending'`, `metadata = { return_tracking_url }`, `is_milestone = false`.
+    - Validate `item.current_owner_id = :userId`.
+    - Resolve active `request` (`assigned_item_id = itemId`, `status = 'assigned'`); reject if none.
+    - Validate `request.is_wfh = true` — if false, reject: "Return for this device must be initiated by IT."
+    - Validate `item.status = 'assigned'` — reject if already `return_shipping_pending`.
+    - Update `item.status = 'return_shipping_pending'`.
+    - Update `request.return_tracking_url = return_tracking_url`, `request.return_initiated_at = now()`. `request.status` stays `'assigned'` — transit window is tracked on `item.status` only; `request.status` moves to `'completed'` only when IT confirms physical receipt (IT Admin module, out of scope here).
+    - `device_log` insert: `event_type = 'return_ship_initiated'`, `actor_role = 'employee'`, `item_id = itemId`, `request_id`, `from_value = 'assigned'`, `to_value = 'return_shipping_pending'`, `metadata = { return_tracking_url }`, `is_milestone = false`.
 
 No separate status-check endpoint needed — Screen 2's Device Detail already returns `item.status` and `request.return_tracking_url`.
 
@@ -171,10 +191,10 @@ The schema's `support_type` enum is `update | damage | lost` only. UI labels map
 - **Request Args:** `{ type, description }`
 - **Response:** `support_request.*`
 - **Backend Logic:**
-  - Validate `item.current_owner_id = :userId`.
-  - Resolve `request_id` from active `request` (`assigned_item_id = itemId`, `status = 'assigned'`) — null only for a client-direct device with no request row.
-  - Insert `support_request`: `item_id = itemId`, `requester_id = :userId`, `request_id`, `type`, `description`, `status = 'open'`, `filed_at = now()`.
-  - `device_log` insert: `event_type = 'support_opened'`, `actor_role = 'employee'`, `item_id = itemId`, `support_request_id`, `is_milestone = true`.
+    - Validate `item.current_owner_id = :userId`.
+    - Resolve `request_id` from active `request` (`assigned_item_id = itemId`, `status = 'assigned'`) — null only for a client-direct device with no request row.
+    - Insert `support_request`: `item_id = itemId`, `requester_id = :userId`, `request_id`, `type`, `description`, `status = 'open'`, `filed_at = now()`.
+    - `device_log` insert: `event_type = 'support_opened'`, `actor_role = 'employee'`, `item_id = itemId`, `support_request_id`, `is_milestone = true`.
 
 ### List My Support Requests
 
@@ -215,9 +235,9 @@ QR code encodes `item_id` directly. On scan, the app reads `item_id` from the QR
 - **Request Args:** `{ item_id, requested_duration_hours }`
 - **Response:** `handover_request.*`
 - **Backend Logic:**
-  - Resolve `owner_id = item.current_owner_id`; reject if null or if `owner_id = :userId` (can't request your own device).
-  - Insert `handover_request`: `item_id`, `owner_id`, `borrower_id = :userId`, `requested_duration_hours`, `status = 'requested'`, `requested_at = now()`. Multiple simultaneous `requested` rows on the same device are allowed (`WORKFLOWS.md` §7) — no uniqueness check here.
-  - `device_log` insert: `event_type = 'handover_requested'`, `actor_role = 'employee'`, `item_id`, `handover_request_id`, `is_milestone = false`.
+    - Resolve `owner_id = item.current_owner_id`; reject if null or if `owner_id = :userId` (can't request your own device).
+    - Insert `handover_request`: `item_id`, `owner_id`, `borrower_id = :userId`, `requested_duration_hours`, `status = 'requested'`, `requested_at = now()`. Multiple simultaneous `requested` rows on the same device are allowed (`WORKFLOWS.md` §7) — no uniqueness check here.
+    - `device_log` insert: `event_type = 'handover_requested'`, `actor_role = 'employee'`, `item_id`, `handover_request_id`, `is_milestone = false`.
 
 ### List My Handover Requests
 
