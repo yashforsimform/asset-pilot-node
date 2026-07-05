@@ -25,6 +25,7 @@ import {
     getItemCategory,
     login,
     deviceDetailsFromId,
+    listEmployeeDevicesByManagerID,
 } from './mobile.controller';
 import {
     approveRequestSchema,
@@ -94,6 +95,8 @@ router.get(
     validateParams(itemIdParamsSchema),
     listDeviceExtensionRequests,
 );
+
+router.get('/manager/employee-devices', listEmployeeDevicesByManagerID);
 router.get(
     '/me/extension-requests/:id',
     validateParams(extensionRequestIdParamsSchema),

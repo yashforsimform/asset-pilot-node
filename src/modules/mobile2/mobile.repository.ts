@@ -33,6 +33,17 @@ export type ManagerApprovalRequest = Prisma.RequestGetPayload<{
     include: typeof managerApprovalInclude;
 }>;
 
+const employeeDevicesByManagerInclude = {
+    requests: {
+        include: requestWithCategoryAndItem,
+        orderBy: { createdAt: 'desc' },
+    },
+} satisfies Prisma.UserInclude;
+
+export type EmployeeDevicesByManager = Prisma.UserGetPayload<{
+    include: typeof employeeDevicesByManagerInclude;
+}>;
+
 export type ItemLookup = Prisma.ItemGetPayload<{
     include: typeof itemLookupInclude;
 }>;
@@ -301,6 +312,20 @@ export async function findExtensionRequestsForDevice(
     return prisma.extensionRequest.findMany({
         where: { originalRequestId: request.id },
         orderBy: { createdAt: 'desc' },
+    });
+}
+
+export async function findEmployeeDevicesByManager(
+    managerId: string,
+): Promise<EmployeeDevicesByManager[]> {
+    return prisma.user.findMany({
+        where: {
+            managerId,
+            role: 'employee',
+            isActive: true,
+        },
+        include: employeeDevicesByManagerInclude,
+        orderBy: { name: 'asc' },
     });
 }
 

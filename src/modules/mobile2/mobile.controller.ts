@@ -39,6 +39,7 @@ import {
     getUserService,
     initiateReturn,
     listExtensionRequests,
+    listEmployeeDevicesForManager,
     listHandoverRequests,
     listSupportRequests,
     rejectHandoverRequest,
@@ -192,6 +193,20 @@ export async function listDeviceExtensionRequests(
     );
 }
 
+export async function listEmployeeDevicesByManagerID(
+    req: Request,
+    res: Response,
+): Promise<void> {
+    const employeeDevices = await listEmployeeDevicesForManager(
+        getAuthenticatedUserId(req),
+    );
+    res.json(
+        buildSuccessResponse(
+            employeeDevices,
+            'Employee devices fetched successfully',
+        ),
+    );
+}
 export async function getMyExtensionRequestDetail(
     req: Request<EntityIdParams>,
     res: Response,

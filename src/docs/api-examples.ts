@@ -717,6 +717,47 @@ export const apiExamples = {
                 ),
             },
         },
+        managerEmployeeDevices: {
+            paul: {
+                summary: 'Paul direct employees with request-backed devices',
+                value: success(
+                    [
+                        {
+                            ...users.quinn,
+                            requests: [managerApprovals.paulIphone],
+                        },
+                        {
+                            ...users.rachel,
+                            requests: [managerApprovals.paulMobile],
+                        },
+                    ],
+                    'Employee devices fetched successfully',
+                ),
+            },
+            emmaWhite: {
+                summary:
+                    'Emma White direct employees with all request statuses',
+                value: success(
+                    [
+                        {
+                            ...users.victor,
+                            requests: [
+                                assignedRequests.victorDell,
+                                assignedRequests.victorBose,
+                            ],
+                        },
+                        {
+                            ...users.emmaKing,
+                            requests: [
+                                assignedRequests.emmaKeyboard,
+                                managerApprovals.emmaIphone12,
+                            ],
+                        },
+                    ],
+                    'Employee devices fetched successfully',
+                ),
+            },
+        },
         managerDecision: {
             approved: {
                 summary: 'Manager approved',

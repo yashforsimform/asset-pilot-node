@@ -382,6 +382,21 @@ export const openApiDocument = {
                 },
             },
         },
+        '/manager/employee-devices': {
+            get: {
+                summary: 'Manager - Employee Devices By Request',
+                description:
+                    'Returns every active direct employee under the authenticated manager and all of their asset requests across every request status. Each request includes category and assignedItem when a device has been assigned.',
+                tags: ['Manager'],
+                parameters: operationParameters(),
+                responses: {
+                    '200': jsonResponse(
+                        'Employee request-backed devices',
+                        apiExamples.responses.managerEmployeeDevices,
+                    ),
+                },
+            },
+        },
         '/manager/requests/{requestId}/approve': {
             patch: {
                 summary: 'Screen 4 - Approve Request',
