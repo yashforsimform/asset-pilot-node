@@ -824,6 +824,38 @@ export const apiExamples = {
                 ),
             },
         },
+        nonWfhReturnCompleted: {
+            success: {
+                summary: 'Non-WFH device returned – status back to available',
+                value: success(
+                    {
+                        item: {
+                            ...items.dellXps,
+                            status: 'available',
+                            currentOwnerId: null,
+                        },
+                        request: {
+                            id: 'a1b2c3d4-0000-4000-8000-000000000001',
+                            requesterId: users.victor.id,
+                            assignedItemId: items.dellXps.id,
+                            status: 'completed',
+                            isWfh: false,
+                            completedAt: '2026-07-05T05:00:00.000Z',
+                            completedById: users.victor.id,
+                        },
+                    },
+                    'Device returned successfully',
+                ),
+            },
+            notFound: {
+                summary: 'No active assigned request found for this device',
+                value: error(
+                    'Active assigned request not found',
+                    404,
+                    'active_assignment_not_found',
+                ),
+            },
+        },
         supportRequests: {
             victorAll: {
                 summary: 'Victor support requests',

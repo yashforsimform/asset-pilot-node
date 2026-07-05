@@ -444,6 +444,49 @@ export async function initiateWfhReturn(
         return { item, request: updatedRequest };
     });
 }
+export async function completeNonWfhReturn(userId: string, itemId: string) {
+    return prisma.$transaction(async (tx) => {
+        const request = await tx.request.findFirst({
+            where: {
+                requesterId: userId,
+                assignedItemId: itemId,
+                status: 'assigned',
+                assignedItem: { currentOwnerId: userId },
+
+            },
+            include: { assignedItem: true },
+            orderBy: { createdAt: 'desc' },
+        });
+        if (!request || !request.assignedItem) {
+            throw new Error('ACTIVE_ASSIGNMENT_NOT_FOUND');
+        }
+        // Update item status back to available (non-WFH device goes straight back to stock)
+        const item = await tx.item.update({
+            where: { id: itemId },
+            data: { status: 'available', currentOwnerId: null },
+        });
+        // Mark request as completed
+        const updatedRequest = await tx.request.update({
+            where: { id: request.id },
+            data: {
+                status: 'completed',
+                completedAt: new Date(),
+                completedById: userId,
+            },
+        });
+        await writeDeviceLog(tx, {
+            itemId,
+            eventType: 'return_received',
+            actorId: userId,
+            actorRole: 'employee',
+            requestId: request.id,
+            metadata: {},
+            isMilestone: true,
+        });
+        return { item, request: updatedRequest };
+    });
+}
+
 
 export async function createSupportRequestForDevice(
     userId: string,

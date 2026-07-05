@@ -8,6 +8,7 @@ import {
     getMyExtensionRequestDetail,
     getMyDeviceDetail,
     getMySupportRequestDetail,
+    completeNonWfhDeviceReturn,
     initiateDeviceReturn,
     listDeviceExtensionRequests,
     listMyHandoverRequests,
@@ -109,6 +110,11 @@ router.post(
     validateParams(itemIdParamsSchema),
     validateBody(returnDeviceSchema),
     initiateDeviceReturn,
+);
+router.post(
+    '/me/devices/:itemId/return-non-wfh',
+    validateParams(itemIdParamsSchema),
+    completeNonWfhDeviceReturn,
 );
 router.post(
     '/me/devices/:itemId/support-requests',

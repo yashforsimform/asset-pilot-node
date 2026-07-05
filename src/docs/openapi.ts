@@ -519,6 +519,24 @@ export const openApiDocument = {
                 },
             },
         },
+        '/me/devices/{itemId}/return-non-wfh': {
+            post: {
+                summary: 'Complete Non-WFH Return',
+                description:
+                    'Instantly completes the return for a non-WFH (office-based) device. No tracking URL required. Sets the device status back to `available`, clears the owner, marks the request as `completed`, and logs a `return_received` milestone event. Use this for company-owned devices that are physically handed back at the office.',
+                tags: ['Returns'],
+                parameters: operationParameters(
+                    pathUuidParam('itemId', apiExamples.items.dellXps.id),
+                ),
+                responses: {
+                    '200': jsonResponse(
+                        'Device returned successfully',
+                        apiExamples.responses.nonWfhReturnCompleted,
+                    ),
+                    '404': { $ref: '#/components/responses/NotFound' },
+                },
+            },
+        },
         '/me/devices/{itemId}/support-requests': {
             post: {
                 summary: 'Screen 7 - File Support Request',

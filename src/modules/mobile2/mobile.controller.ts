@@ -24,6 +24,7 @@ import {
     cancelHandoverRequest,
     cancelRequestByUserId,
     completeHandoverRequest,
+    completeNonWfhReturnService,
     createExtensionRequest,
     createHandoverRequest,
     createRequest,
@@ -245,6 +246,17 @@ export async function initiateDeviceReturn(
         req.body,
     );
     res.json(buildSuccessResponse(result, 'Return initiated successfully'));
+}
+
+export async function completeNonWfhDeviceReturn(
+    req: Request<ItemIdParams>,
+    res: Response,
+): Promise<void> {
+    const result = await completeNonWfhReturnService(
+        getAuthenticatedUserId(req),
+        req.params.itemId,
+    );
+    res.json(buildSuccessResponse(result, 'Device returned successfully'));
 }
 
 export async function submitSupportRequest(
