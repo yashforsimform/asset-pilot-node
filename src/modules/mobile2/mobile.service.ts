@@ -47,6 +47,7 @@ import {
     getDeviceDetailRepo,
     getItemCategoryRepo,
     getMyDevicesByUserId,
+    completeNonWfhReturn,
     initiateWfhReturn,
     rejectHandoverForOwner,
     rejectRequestByManager,
@@ -435,6 +436,18 @@ export async function initiateReturn(
     try {
         await getCurrentUser(userId);
         return await initiateWfhReturn(userId, itemId, dto.returnTrackingUrl);
+    } catch (error) {
+        mapWorkflowError(error);
+    }
+}
+
+export async function completeNonWfhReturnService(
+    userId: string,
+    itemId: string,
+): Promise<unknown> {
+    try {
+        await getCurrentUser(userId);
+        return await completeNonWfhReturn(userId, itemId);
     } catch (error) {
         mapWorkflowError(error);
     }
