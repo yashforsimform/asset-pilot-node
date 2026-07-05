@@ -149,17 +149,26 @@ export async function getMyDevicesByUserId(userId: string) {
     // });
 }
 
-export async function findRequestsByRequester(
-    requesterId: string,
-): Promise<RequestWithCategoryAndItem[]> {
-    return prisma.request.findMany({
-        where: { requesterId },
-        include: {
-            category: true,
-            assignedItem: true,
-        },
-        orderBy: { createdAt: 'desc' },
-    });
+export async function findRequestsByRequester(requesterId: string) {
+    const data = await Promise.all([
+        prisma.request.findMany({
+            where: { requesterId },
+            include: {
+                category: true,
+                assignedItem: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        }),
+        prisma.extensionRequest.findMany({
+            where: { requesterId },
+            include: {
+                originalRequest: {
+                    include: { category: true, assignedItem: true },
+                },
+            },
+        }),
+    ]);
+    return data;
 }
 
 export async function findAssignmentForRequester(

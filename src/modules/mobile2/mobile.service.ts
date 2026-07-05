@@ -187,9 +187,7 @@ export async function getItemCategoryService() {
     return getItemCategoryRepo();
 }
 
-export async function getMyRequests(
-    userId: string,
-): Promise<RequestWithCategoryAndItem[]> {
+export async function getMyRequests(userId: string) {
     const user = await getCurrentUser(userId);
     if (!user) {
         throw new AppError(
@@ -198,7 +196,16 @@ export async function getMyRequests(
             'authenticated_user_not_found',
         );
     }
-    return findRequestsByRequester(user.id);
+    const [request, extention] = await findRequestsByRequester(user.id);
+    const finalExtension = extention.map((ext) => {
+        const { originalRequest, ...req } = ext;
+        return {
+            ...originalRequest,
+            ...req,
+        };
+    });
+    // console.log(data);
+    return [...request, ...finalExtension];
 }
 
 export async function getMyDevices(userId: string) {
