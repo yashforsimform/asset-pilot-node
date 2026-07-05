@@ -25,6 +25,7 @@ import {
     getItemCategory,
     login,
     deviceDetailsFromId,
+    cancelRequest,
 } from './mobile.controller';
 import {
     approveRequestSchema,
@@ -57,6 +58,7 @@ router.post('/login', login);
 router.get('/items-category', getItemCategory);
 router.get('/me/requests', listMyRequests);
 router.get('/me/devices', listMyDevices);
+router.get('/me/requests/:requestId/cancel', cancelRequest);
 // router.get('/me/assigned-devices', listMyDevices)
 router.get(
     '/me/devices/:itemId',

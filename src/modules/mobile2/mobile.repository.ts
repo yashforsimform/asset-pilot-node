@@ -82,6 +82,28 @@ function buildFallbackUser(id: string): User {
 export async function findUserByEmail(email: string) {
     return await prisma.user.findUnique({
         where: { email },
+        include: { manager: true },
+    });
+}
+
+export async function findRequestByUserId(requestId: string, userId: string) {
+    return await prisma.request.findFirst({
+        where: {
+            requesterId: userId,
+            id: requestId,
+            OR: [
+                { status: 'pending_it_approval' },
+                { status: 'pending_mgr_approval' },
+                { status: 'requested' },
+            ],
+        },
+    });
+}
+
+export async function cancelRequestById(requestId: string) {
+    return await prisma.request.update({
+        where: { id: requestId },
+        data: { status: 'cancelled' },
     });
 }
 

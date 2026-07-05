@@ -21,6 +21,7 @@ import {
     acceptHandoverForOwner,
     approveRequestByManager,
     cancelHandoverForBorrower,
+    cancelRequestById,
     completeHandoverForOwner,
     createAssetRequest,
     createExtensionRequestForDevice,
@@ -36,6 +37,7 @@ import {
     findManagerApprovals,
     findMyRequestByUserId,
     findRequestById,
+    findRequestByUserId,
     findRequestsByRequester,
     findSupportRequestDetail,
     findSupportRequestsByRequester,
@@ -293,6 +295,22 @@ export async function getApprovalsForManager(
 ): Promise<ManagerApprovalRequest[]> {
     const user = await getCurrentUser(userId);
     return findManagerApprovals(user.id);
+}
+
+export async function cancelRequestByUserId(userId: string, requestId: string) {
+    const user = await getCurrentUser(userId);
+    if (!user) {
+        throw new AppError(
+            'Authenticated user not found',
+            401,
+            'authenticated_user_not_found',
+        );
+    }
+    const request = await findRequestByUserId(requestId, userId);
+    if (!request) {
+        throw new AppError('Request not found', 404, 'request_not_found');
+    }
+    return await cancelRequestById(requestId);
 }
 
 export async function approveRequest(

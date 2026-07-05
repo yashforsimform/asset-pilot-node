@@ -22,6 +22,7 @@ import {
     acceptHandoverRequest,
     approveRequest,
     cancelHandoverRequest,
+    cancelRequestByUserId,
     completeHandoverRequest,
     createExtensionRequest,
     createHandoverRequest,
@@ -132,6 +133,17 @@ export async function listManagerApprovals(
             'Manager approvals fetched successfully',
         ),
     );
+}
+
+export async function cancelRequest(
+    req: Request<RequestIdParams>,
+    res: Response,
+) {
+    const updated = await cancelRequestByUserId(
+        getAuthenticatedUserId(req),
+        req.params.requestId,
+    );
+    res.json(buildSuccessResponse(updated, 'Request cancelled'));
 }
 
 export async function approveManagerRequest(
