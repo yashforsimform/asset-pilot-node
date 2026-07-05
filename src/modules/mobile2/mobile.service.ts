@@ -310,7 +310,11 @@ export async function cancelRequestByUserId(userId: string, requestId: string) {
     }
     const request = await findRequestByUserId(requestId, userId);
     if (!request) {
-        throw new AppError('Request not found', 404, 'request_not_found');
+        throw new AppError(
+            'Request is not in pending state',
+            404,
+            'request_not_pending',
+        );
     }
     return await cancelRequestById(requestId);
 }
@@ -363,7 +367,7 @@ export async function createExtensionRequest(
             throw new Error('ACTIVE_ASSIGNMENT_NOT_FOUND');
         }
 
-        if (dto.extended_to <= activeRequest.assignedTo) {
+        if (dto.extendedTo <= activeRequest.assignedTo) {
             throw new AppError(
                 'extended_to must be greater than the current assigned_to date',
                 400,
@@ -374,7 +378,7 @@ export async function createExtensionRequest(
         return await createExtensionRequestForDevice(
             userId,
             itemId,
-            dto.extended_to,
+            dto.extendedTo,
         );
     } catch (error) {
         mapWorkflowError(error);
@@ -430,7 +434,7 @@ export async function initiateReturn(
 ): Promise<unknown> {
     try {
         await getCurrentUser(userId);
-        return await initiateWfhReturn(userId, itemId, dto.return_tracking_url);
+        return await initiateWfhReturn(userId, itemId, dto.returnTrackingUrl);
     } catch (error) {
         mapWorkflowError(error);
     }

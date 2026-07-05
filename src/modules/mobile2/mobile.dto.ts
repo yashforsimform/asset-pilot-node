@@ -39,11 +39,11 @@ export const handoverRequestIdParamsSchema = z.object({
 });
 
 export const createExtensionRequestSchema = z.object({
-    extended_to: z.coerce.date(),
+    extendedTo: z.coerce.date(),
 });
 
 export const returnDeviceSchema = z.object({
-    return_tracking_url: z.string().url().max(2048),
+    returnTrackingUrl: z.string().url().max(2048),
 });
 
 export const createSupportRequestSchema = z.object({
