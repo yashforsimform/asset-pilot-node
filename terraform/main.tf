@@ -46,6 +46,11 @@ resource "azurerm_linux_web_app" "app" {
     "NODE_ENV"                            = "production"
     "PORT"                                = "3000"
     "WEBSITES_PORT"                       = "3000"
+    "SMTP_HOST"                           = var.smtp_host
+    "SMTP_PORT"                           = var.smtp_port
+    "SMTP_USER"                           = var.smtp_user
+    "SMTP_PASS"                           = var.smtp_pass
+    "SMTP_FROM"                           = var.smtp_from
   }
 
   identity {

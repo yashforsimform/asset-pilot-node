@@ -33,3 +33,12 @@ variable "db_connection_string" {
   type        = string
   sensitive   = true
 }
+
+variable "smtp_host" { type = string }
+variable "smtp_port" { type = string }
+variable "smtp_user" { type = string }
+variable "smtp_pass" {
+  type      = string
+  sensitive = true
+}
+variable "smtp_from" { type = string }
